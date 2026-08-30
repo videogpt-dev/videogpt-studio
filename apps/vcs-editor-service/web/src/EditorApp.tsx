@@ -63,7 +63,7 @@ export function EditorApp({ initialDoc }: { initialDoc?: Partial<ClipProps> }) {
         setStatus(`Error: ${r.error}`);
       }
     } catch (e) {
-      setStatus(`Error: ${e instanceof Error ? e.message : e}`);
+      setStatus(`Error: ${e instanceof Error ? e.message : "Unknown error"}`);
     } finally {
       setRendering(false);
     }

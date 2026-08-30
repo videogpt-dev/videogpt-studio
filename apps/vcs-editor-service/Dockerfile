@@ -4,17 +4,15 @@
 # packages):  docker build -f apps/vcs-editor-service/Dockerfile .
 # docker-compose.yml already sets the context correctly.
 
-# --- build: install the workspace subgraph, then produce a self-contained,
-#     prod-only deploy tree (flat node_modules, no dev deps, no sibling apps) ---
+# --- build: install the production workspace subgraph ---
 FROM node:24-bookworm-slim AS build
-RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+ENV CI=true
+RUN corepack enable && corepack prepare pnpm@11.18.0 --activate
 WORKDIR /repo
 COPY . .
-RUN pnpm install --frozen-lockfile --filter vcs-editor-service...
-# --legacy: deploy without injected workspace deps (default off since pnpm v10).
-RUN pnpm --filter vcs-editor-service --prod deploy --legacy /out
+RUN pnpm install --prod --frozen-lockfile --filter vcs-editor-service...
 
-# --- runtime: headless-Chromium shared libs + system ffmpeg + the deploy tree ---
+# --- runtime: headless-Chromium shared libs + system ffmpeg + workspace runtime ---
 FROM node:24-bookworm-slim AS runtime
 # ffmpeg powers the fast render lane (FfmpegDriver). The rest are headless-Chromium
 # runtime libraries needed by @remotion/renderer. (Remotion downloads its own Chrome
@@ -45,8 +43,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV NODE_ENV=production \
     PORT=3000 \
     OUTPUT_DIR=/app/output
-WORKDIR /app
-COPY --from=build /out .
+WORKDIR /repo
+COPY --from=build /repo/node_modules ./node_modules
+COPY --from=build /repo/apps/vcs-editor-service ./apps/vcs-editor-service
+COPY --from=build /repo/packages/vcs-remotion ./packages/vcs-remotion
+WORKDIR /repo/apps/vcs-editor-service
 EXPOSE 3000
 # tsx runs the TypeScript service directly (no build step).
 CMD ["./node_modules/.bin/tsx", "src/server.ts"]

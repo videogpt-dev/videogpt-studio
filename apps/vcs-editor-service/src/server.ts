@@ -25,7 +25,7 @@ const CACHE_DIR = process.env.RENDER_CACHE_DIR || path.join(OUTPUT_DIR, ".render
 // composited). SmartDriver routes by capability; CachingDriver skips re-encodes.
 // Add a license-free rich driver by swapping RemotionDriver here.
 const driver = new CachingDriver(
-  new SmartDriver(new FfmpegDriver(), new RemotionDriver(), FfmpegDriver.supports),
+  new SmartDriver(new FfmpegDriver(), new RemotionDriver(), (doc) => FfmpegDriver.supports(doc)),
   CACHE_DIR,
 );
 
@@ -240,7 +240,8 @@ app.put(
   "/v1/source",
   express.raw({ type: () => true, limit: "4096mb" }),
   (req: Request, res: Response) => {
-    const ext = path.extname(String(req.query.name || "")).toLowerCase();
+    const name = typeof req.query.name === "string" ? req.query.name : "";
+    const ext = path.extname(name).toLowerCase();
     if (!SOURCE_EXT.test(ext)) {
       return res.status(400).json({ ok: false, error: "unsupported file type" });
     }

@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig } from "vite-plus";
 
 // The editor SPA. In dev it proxies the render API + media to the express
 // service on :3000, so the whole app runs from `pnpm --filter vcs-editor-service
