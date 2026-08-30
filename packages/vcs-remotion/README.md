@@ -6,14 +6,14 @@ headless render, so what you preview is what you render.
 
 ## What's here
 
-- **Compositions** — `Clip` (cut + crop/scale + optional captions), `Captioned`
-  (burn a caption track onto a base clip), `Story` (assemble images/clips +
-  voiceover + captions + music). Registered in `RemotionRoot` for the renderer.
-- **Crop math** — `resolveCrop`, `cropDims`, `formatDims`, `centeredCrop`. The
-  fast ffmpeg render lane reuses these so its output matches the composition.
-- **EditDoc** — zod schemas (`ClipInputSchema`, `CaptionedInputSchema`,
-  `StoryInputSchema`) plus `parseEditDoc(compositionId, inputProps)`, the single
-  validated contract the editor produces and the renderer consumes.
+- **Compositions.** `Clip` (cut plus crop/scale plus optional captions), `Captioned`
+  (burn a caption track onto a base clip), `Story` (assemble images or clips with voiceover,
+  captions, and music). Registered in `RemotionRoot` for the renderer.
+- **Crop math.** `resolveCrop`, `cropDims`, `formatDims`, `centeredCrop`. The fast ffmpeg
+  render lane reuses these so its output matches the composition.
+- **Edit document.** zod schemas (`ClipInputSchema`, `CaptionedInputSchema`,
+  `StoryInputSchema`) plus `parseEditDoc(compositionId, inputProps)`, the one validated
+  contract the editor produces and the renderer consumes.
 
 ## Use
 
@@ -33,6 +33,5 @@ const doc = parseEditDoc(compositionId, inputProps); // throws on a bad shape
 
 ## License
 
-MIT (`LICENSE`). Note that `remotion` and `@remotion/player`, which this package
-builds on, are under the separate Remotion License — see the service's
-`NOTICE.md`.
+MIT (`LICENSE`). Note that `remotion` and `@remotion/player`, which this package builds on,
+are under the separate Remotion License. See the repository's [NOTICE.md](../../NOTICE.md).

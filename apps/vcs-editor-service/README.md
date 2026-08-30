@@ -1,108 +1,100 @@
-# VideoGPT Studio — open render + editor service
+# vcs-editor-service
 
-A standalone video render service (and, in time, editor UI) for short-form and
-AI-generated video. It takes a declarative edit document, previews it in the
-browser, and renders it to an mp4 — using two interchangeable engines.
+The render server and web editor for VideoGPT Studio. You give it an edit document, it gives
+you back an mp4. The web editor is a small UI for building that document by hand.
 
-It is the pixels half of the pipeline. The "brain" (finding moments,
-transcription, metadata) lives elsewhere and hands this service a render command;
-from there a user can edit, reframe, and (soon) compose rich layers.
+It does not find moments or transcribe. Something upstream decides what to render and calls
+this service. This service turns that into video.
 
-## Two engines, one seam
+## Two engines
 
-Every render goes through a `RenderDriver`. Two implementations sit behind it:
+Every render goes through a `RenderDriver`. There are two:
 
-| Engine     | For                                             | Cost              |
-| ---------- | ----------------------------------------------- | ----------------- |
-| **ffmpeg** | plain cuts, crop / scale to a target format     | fast, no browser  |
-| **Remotion** | burned captions, layered / composited output, story assembly | rich, headless Chromium |
+| Engine | For | Cost |
+|---|---|---|
+| ffmpeg | plain cuts, crop or scale to a format | fast, no browser |
+| Remotion | burned captions, layered scenes, story assembly | slower, headless Chromium |
 
-`SmartDriver` routes each job to the fast lane when it can express it, otherwise
-the rich lane. The ffmpeg lane reuses the Remotion composition's own crop math,
-so a fast cut is pixel-parity with the browser preview. A `CachingDriver`
-wraps both: identical jobs (same composition + inputProps) reuse the cached mp4
-instead of re-encoding.
+`SmartDriver` sends a job to the fast lane when it can, otherwise the rich lane. The ffmpeg
+lane reuses the Remotion composition's own crop math, so a fast cut matches the browser
+preview pixel for pixel. `CachingDriver` wraps both: an identical job (same composition and
+inputProps) reuses the cached mp4 instead of encoding again.
 
 ```
-CachingDriver ─ SmartDriver ─┬─ FfmpegDriver   (fast)
-                             └─ RemotionDriver (rich)
+CachingDriver > SmartDriver > FfmpegDriver   (fast)
+                            > RemotionDriver  (rich)
 ```
 
-The seam means you can add a fully license-free rich backend, or a cloud/lambda
-backend, by writing one class — the routes never change.
+You can add another rich backend (say a cloud or lambda renderer) by writing one class. The
+routes do not change.
 
 ## The edit document
 
-`@vcs/remotion` defines the compositions (`Clip`, `Captioned`, `Story`) and a
-zod-validated `EditDoc` — the single contract the editor produces, the
-`<Player>` previews, and the renderer consumes. Because preview and render run
-the same composition code, what you see is what you get. `parseEditDoc` validates
-every render at the boundary.
+`@vcs/remotion` holds the compositions (`Clip`, `Captioned`, `Story`) and a zod-validated
+edit document. The editor produces it, the `<Player>` previews it, and the renderer consumes
+it. Preview and render run the same composition code, so the preview matches the output.
+`parseEditDoc` validates every render before it starts.
 
-## Run it
+## Run
 
-Requires Node 24+, pnpm, and a system `ffmpeg` on PATH.
+Node 20 or newer, pnpm, and a system `ffmpeg` on PATH.
 
-```bash
+```sh
 pnpm install
-pnpm --filter vcs-editor-service dev      # render API, tsx watch on :3000
-pnpm --filter vcs-editor-service web:dev  # editor UI, Vite on :5180 (proxies the API)
+pnpm --filter vcs-editor-service dev      # render API on :3000
+pnpm --filter vcs-editor-service web:dev  # editor on :5180 (proxies the API)
 ```
 
-Open http://localhost:5180, paste a source video URL, trim / reframe / toggle
-captions, and hit Render. The editor edits one `EditDoc` and previews it with the
-same composition the server renders — WYSIWYG. In production the service serves
-the built UI itself (`web:build` → `web/dist`), so it is one app.
+Open http://localhost:5180, paste a source video URL, trim or reframe, toggle captions, hit
+Render. In production the service serves the built UI itself (`web:build` writes `web/dist`),
+so it is one app.
 
-The service is stateless: it reads source media (a local path under `OUTPUT_DIR`
-or an absolute URL), renders, and either writes to `OUTPUT_DIR` or PUTs the
-result to a signed `uploadUrl` you supply. It does not need a database.
+The service keeps no state. It reads source media (a local path under `OUTPUT_DIR` or an
+absolute URL), renders, and either writes to `OUTPUT_DIR` or PUTs the result to a signed
+`uploadUrl` you pass. No database.
 
 ### Endpoints
 
-- `GET /health` — liveness.
-- `POST /v1/render` — the generic command: `{compositionId, inputProps}` (an
-  EditDoc) in, an mp4 out. Validated up front (bad shape → 400). What the editor
-  and backend call.
-- `POST /caption` — burn a caption track onto an already-cut base clip.
-- `POST /render-story` — assemble images / clips + voiceover + captions + music
-  into one mp4.
-- `GET /media/*` — static passthrough of `OUTPUT_DIR` so the headless renderer
-  reads frames off the local volume.
+| Method | Path | What it does |
+|---|---|---|
+| GET | `/health` | liveness |
+| POST | `/v1/render` | generic command: `{compositionId, inputProps}` in, mp4 out (bad shape is a 400) |
+| POST | `/caption` | burn a caption track onto an already cut clip |
+| POST | `/render-story` | assemble scene images or clips with voiceover, captions, and music into one mp4 |
+| PUT | `/v1/source` | upload a local source file, get a `/media` URL back |
+| GET | `/media/*` | serve `OUTPUT_DIR` so the headless renderer reads frames off the volume |
 
-Example:
-
-```bash
+```sh
 curl -s localhost:3000/health
 # {"ok":true,"service":"vcs-editor-service"}
 ```
 
 ## Configuration
 
-| Env                | Default                | Purpose                                  |
-| ------------------ | ---------------------- | ---------------------------------------- |
-| `PORT`             | `3000`                 | HTTP port                                |
-| `OUTPUT_DIR`       | `/app/output`          | media root (read source, write output)   |
-| `RENDER_CACHE_DIR` | `$OUTPUT_DIR/.render-cache` | content-addressed render cache      |
-| `FFMPEG_PATH`      | `ffmpeg`               | ffmpeg binary for the fast lane          |
+| Env | Default | Purpose |
+|---|---|---|
+| `PORT` | `3000` | HTTP port |
+| `OUTPUT_DIR` | `/app/output` | media root (reads source, writes output) |
+| `RENDER_CACHE_DIR` | `$OUTPUT_DIR/.render-cache` | content addressed render cache |
+| `FFMPEG_PATH` | `ffmpeg` | ffmpeg binary for the fast lane |
 
 ## Docker
 
-```bash
-# build context is the repo root (workspace deps)
+The build context is the repo root, because it installs workspace dependencies.
+
+```sh
 docker build -f apps/vcs-editor-service/Dockerfile -t videogpt-studio .
 docker run -p 3000:3000 -v "$PWD/output:/app/output" videogpt-studio
 ```
 
 ## Licensing
 
-This project's code is MIT (`LICENSE`). It depends on **Remotion**, which is
-source-available and free for individuals and companies up to 3 people, paid
-above that — and **FFmpeg** (LGPL/GPL by build). See `NOTICE.md`. The
-`RenderDriver` seam exists so you can run entirely on the ffmpeg lane if
-Remotion's terms do not suit you.
+The code here is MIT (`LICENSE`). It uses Remotion, which is source-available and free for
+individuals and companies up to three people, paid above that. It also uses ffmpeg (LGPL or
+GPL by build). See [NOTICE.md](../../NOTICE.md). The `RenderDriver` seam lets you run on the
+ffmpeg lane alone if Remotion's terms do not suit you.
 
 ## Contributing
 
-See `CONTRIBUTING.md`. The high-value open surface is the editor UI (a `<Player>`
-timeline that reads and writes the `EditDoc`) and new render layers.
+See [CONTRIBUTING.md](../../CONTRIBUTING.md). The most useful place to help is the editor UI
+(a `<Player>` timeline that reads and writes the edit document) and new render layers.

@@ -17,6 +17,18 @@ pnpm -C apps/vcs-editor-service dev        # render API on :3000
 pnpm -C apps/vcs-editor-service web:dev     # editor UI on :5180
 ```
 
+## Layout
+
+- `apps/vcs-editor-service` is the service: HTTP routes and the render drivers.
+  - `driver.ts` is the `RenderDriver` seam.
+  - `remotion-driver.ts` is the Remotion backend (the only file importing `@remotion/*`).
+  - `ffmpeg-driver.ts` is the fast ffmpeg lane.
+  - `smart-driver.ts` routes a job to fast or rich.
+  - `caching-driver.ts` is the content addressed cache.
+  - `server.ts` has the Express routes and wires the drivers together.
+- `packages/vcs-remotion` is the compositions, the shared crop math, and the zod edit
+  document. Self-contained (deps: remotion, zod). It is the preview and render source of truth.
+
 ## The rules that keep this repo honest
 
 - **Preview equals render.** A composition renders in the browser (`<Player>`) and headless

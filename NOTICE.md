@@ -4,17 +4,17 @@ This project's own code is MIT-licensed (see `LICENSE`). It depends on two
 runtime components that carry their own, different terms. Read these before you
 self-host commercially.
 
-## Remotion (the rich render + preview engine)
+## Remotion (the rich render and preview engine)
 
 Remotion is **not** open source. It is source-available under the
 [Remotion License](https://www.remotion.dev/docs/license):
 
 - Free for individuals and for companies of up to 3 people.
-- Companies with 4+ people need a paid company license (per seat).
+- Companies with 4 or more people need a paid company license (per seat).
 
-The obligation falls on **whoever runs Remotion** — that means you, the
-self-hoster, not this project. Publishing this MIT code that depends on Remotion
-does not grant you Remotion's paid rights.
+The obligation falls on whoever runs Remotion. That means you, the self-hoster,
+not this project. Publishing this MIT code that depends on Remotion does not grant
+you Remotion's paid rights.
 
 If you are a company over that threshold you have two options:
 

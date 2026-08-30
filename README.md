@@ -5,45 +5,51 @@
 <h1 align="center">VideoGPT Studio</h1>
 
 <p align="center">
-  An open render and editor service for short-form and AI-generated video.
+  A render service and editor for short vertical video.
 </p>
 
 ---
 
-This is the pixels half of the [videogpt.dev](https://videogpt.dev) pipeline. It takes a
-declarative edit document, previews it in the browser, and renders it to an mp4. The "brain"
-(finding moments, transcription, script) lives elsewhere and hands this service a render
-command; from there a person can edit, reframe, and compose layers.
+You give it an edit document (a video plus cuts, a set of scenes, captions) and it gives you
+back an mp4. It also has a small web editor to build that document by hand.
 
-It renders through two interchangeable engines behind one seam: a fast **ffmpeg** lane for
-plain cuts and reframing, and a rich **Remotion** lane for burned captions, layered output,
-and story assembly. What the browser preview shows is what the headless render produces,
-because both run the same composition code.
+It does not find moments or transcribe. Something upstream decides what to render and hands
+this service the command. This service turns that command into video.
+
+It renders two ways:
+
+- **ffmpeg** for plain work: trim a clip, crop or scale it to a format. Fast, no browser.
+- **Remotion** for composed work: burned captions, layered scenes, assembling generated
+  story videos. Slower, runs headless Chromium.
+
+A router picks the fast lane when the job allows it and the rich lane otherwise. Both render
+from the same composition code the web editor previews, so the preview matches the output.
 
 ## Packages
 
-| Path | Name | Job |
+| Path | Name | What it is |
 |---|---|---|
-| `packages/vcs-remotion` | `@vcs/remotion` | shared compositions (clip, captioned, story) plus a zod-validated EditDoc |
-| `apps/vcs-editor-service` | `vcs-editor-service` | the render service (ffmpeg + Remotion drivers, smart router, cache) and editor web UI |
+| `packages/vcs-remotion` | `@vcs/remotion` | the compositions (clip, captioned, story) and the edit document they share |
+| `apps/vcs-editor-service` | `vcs-editor-service` | the render server and the web editor |
+
+The compositions are their own package so a UI can preview them without pulling in the render
+server. The dashboards do exactly that.
 
 ## Run
 
-You need Node 20+ and pnpm.
+Node 20 or newer, and pnpm.
 
 ```sh
 pnpm install
 pnpm -C apps/vcs-editor-service dev        # render API on :3000
-pnpm -C apps/vcs-editor-service web:dev     # editor UI on :5180 (proxies the API)
+pnpm -C apps/vcs-editor-service web:dev     # editor on :5180
 ```
 
-The service is stateless: POST an edit document, get an mp4. It runs on its own, with no
-backend. See `apps/vcs-editor-service/README.md` for the endpoints, the two-engine seam, and
-the environment.
+POST an edit document, get an mp4. It runs on its own, with no backend behind it. The
+endpoints and settings are in `apps/vcs-editor-service/README.md`.
 
 ## License
 
-This repository's own code is [MIT](LICENSE) licensed. It depends on Remotion and ffmpeg,
-which carry their own, different terms. If you self-host commercially, read [NOTICE.md](NOTICE.md)
-first: Remotion is source-available (free for individuals and companies up to 3 people, paid
-above that), and the obligation is on whoever runs it.
+The code here is [MIT](LICENSE). It uses Remotion and ffmpeg, which have their own terms. If
+you run it as a business, read [NOTICE.md](NOTICE.md) first. Remotion is free for individuals
+and companies up to three people and paid above that, and that cost is on whoever runs it.
