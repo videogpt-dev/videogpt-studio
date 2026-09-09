@@ -1,10 +1,3 @@
-# Video Cut Studio — Remotion headless render service.
-#
-# IMPORTANT: build context is the REPO ROOT (depends on @vcs/* workspace
-# packages):  docker build -f apps/vcs-editor-service/Dockerfile .
-# docker-compose.yml already sets the context correctly.
-
-# --- build: install the production workspace subgraph ---
 FROM node:24-bookworm-slim AS build
 ENV CI=true
 RUN corepack enable && corepack prepare pnpm@11.18.0 --activate
@@ -12,11 +5,7 @@ WORKDIR /repo
 COPY . .
 RUN pnpm install --prod --frozen-lockfile --filter vcs-editor-service...
 
-# --- runtime: headless-Chromium shared libs + system ffmpeg + workspace runtime ---
 FROM node:24-bookworm-slim AS runtime
-# ffmpeg powers the fast render lane (FfmpegDriver). The rest are headless-Chromium
-# runtime libraries needed by @remotion/renderer. (Remotion downloads its own Chrome
-# Headless Shell at runtime; these are its shared libs.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ffmpeg \
       libnss3 \
@@ -48,6 +37,8 @@ COPY --from=build /repo/node_modules ./node_modules
 COPY --from=build /repo/apps/vcs-editor-service ./apps/vcs-editor-service
 COPY --from=build /repo/packages/vcs-remotion ./packages/vcs-remotion
 WORKDIR /repo/apps/vcs-editor-service
+
+RUN ./node_modules/.bin/tsx -e "import('@remotion/renderer').then((m) => m.ensureBrowser()).then(() => process.exit(0), (e) => { console.error(e); process.exit(1); })"
 EXPOSE 3000
-# tsx runs the TypeScript service directly (no build step).
+
 CMD ["./node_modules/.bin/tsx", "src/server.ts"]
