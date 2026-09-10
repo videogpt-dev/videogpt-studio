@@ -25,7 +25,11 @@ const CACHE_DIR = process.env.RENDER_CACHE_DIR || path.join(OUTPUT_DIR, ".render
 // composited). SmartDriver routes by capability; CachingDriver skips re-encodes.
 // Add a license-free rich driver by swapping RemotionDriver here.
 const driver = new CachingDriver(
-  new SmartDriver(new FfmpegDriver(), new RemotionDriver(), (doc) => FfmpegDriver.supports(doc)),
+  new SmartDriver(
+    new FfmpegDriver(),
+    new RemotionDriver(),
+    (doc) => FfmpegDriver.supports(doc) || FfmpegDriver.supportsStory(doc),
+  ),
   CACHE_DIR,
 );
 
