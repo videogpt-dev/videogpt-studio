@@ -216,6 +216,8 @@ export class FfmpegDriver implements RenderDriver {
     } else {
       // Still: Ken Burns (alternating zoom-in / zoom-out + a gentle drift), matching the
       // composition. Upscale first so the zoom samples real pixels instead of blurring.
+      if (!scene.image) throw new Error(`scene ${index + 1} has no image or clip to render`);
+      inputs.push("-loop", "1", "-i", scene.image);
       const zoomIn = index % 2 === 0;
       const z0 = zoomIn ? 1.05 : 1.14;
       const z1 = zoomIn ? 1.14 : 1.05;
