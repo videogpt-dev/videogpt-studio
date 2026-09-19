@@ -37,7 +37,7 @@ const app = express();
 app.use(express.json({ limit: "20mb" }));
 
 // Serve the source video (and any output media) locally so headless Chromium
-// reads frames straight off the mounted volume — no cross-container streaming.
+// reads frames straight off the mounted volume, no cross-container streaming.
 app.use("/media", express.static(OUTPUT_DIR));
 
 // Serve the built editor SPA when present, so the one service ships both the
@@ -58,7 +58,7 @@ function safeRelDir(s: string | undefined): boolean {
 }
 
 function mediaUrl(sourceRel: string): string {
-  // Already absolute (a signed assets-gateway URL from the backend) — use it as-is; only a
+  // Already absolute (a signed assets-gateway URL from the backend), use it as-is; only a
   // bare OUTPUT-relative path is served off this service's local /media mount.
   if (/^https?:\/\//i.test(sourceRel)) return sourceRel;
   const encoded = sourceRel.split("/").map(encodeURIComponent).join("/");
@@ -67,14 +67,13 @@ function mediaUrl(sourceRel: string): string {
 
 // Where a render writes and how it is delivered. When the backend supplies a signed
 // `uploadUrl`, the service owns its own output: render to a private temp file, PUT it to the
-// assets gateway, then delete the temp — it never touches a shared volume. With no uploadUrl
+// assets gateway, then delete the temp, it never touches a shared volume. With no uploadUrl
 // (local dev), it writes into OUTPUT_DIR/<relDir>/<name> as before, off the mounted volume.
 async function renderTo(
   job: RenderJob,
   localDir: string,
   name: string,
-  uploadUrl: string | undefined,
-): Promise<void> {
+  uploadUrl: string | undefined): Promise<void> {
   if (!uploadUrl) {
     fs.mkdirSync(localDir, { recursive: true });
     await driver.render(job, path.join(localDir, name));
@@ -117,7 +116,7 @@ interface CaptionBody {
 // ---------------------------------------------------------------------------
 // Captioned variant: burn the caption track onto an already-cut base clip.
 // Written to clips/<clip_id>/variants/captioned.mp4. Same stateless contract as
-// /render — the Python worker tracks queueing/progress.
+// /render, the Python worker tracks queueing/progress.
 // ---------------------------------------------------------------------------
 app.post("/caption", async (req: Request, res: Response) => {
   const b = req.body as CaptionBody;
@@ -144,8 +143,7 @@ app.post("/caption", async (req: Request, res: Response) => {
       { compositionId: CAPTIONED_COMPOSITION_ID, inputProps },
       outDir,
       "captioned.mp4",
-      b.uploadUrl,
-    );
+      b.uploadUrl);
     res.json({ ok: true, file: `${b.clip_id}/variants/captioned.mp4` });
   } catch (e) {
     console.error("Caption render failed:", e);
@@ -224,8 +222,7 @@ app.post("/render-story", async (req: Request, res: Response) => {
       { compositionId: STORY_COMPOSITION_ID, inputProps },
       path.join(OUTPUT_DIR, relDir),
       outName,
-      b.uploadUrl,
-    );
+      b.uploadUrl);
     res.json({ ok: true, file: `${relDir}/${outName}` });
   } catch (e) {
     console.error("Story render failed:", e);
@@ -257,8 +254,7 @@ app.put(
     fs.mkdirSync(path.join(OUTPUT_DIR, "uploads"), { recursive: true });
     fs.writeFileSync(path.join(OUTPUT_DIR, rel), body);
     res.json({ ok: true, url: `/media/${rel}` });
-  },
-);
+  });
 
 interface RenderBody {
   compositionId: string;
@@ -291,8 +287,7 @@ app.post("/v1/render", async (req: Request, res: Response) => {
       { compositionId: b.compositionId, inputProps: b.inputProps },
       path.join(OUTPUT_DIR, relDir),
       outName,
-      b.uploadUrl,
-    );
+      b.uploadUrl);
     res.json({ ok: true, file: `${relDir}/${outName}` });
   } catch (e) {
     console.error("Render failed:", e);

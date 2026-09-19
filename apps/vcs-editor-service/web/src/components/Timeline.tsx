@@ -1,6 +1,6 @@
 /**
  * Trim: set the in/out window over the source duration. The cut is a param, not
- * a pre-rendered file — moving these updates the preview live.
+ * a pre-rendered file, moving these updates the preview live.
  */
 export function Timeline({
   inSec,

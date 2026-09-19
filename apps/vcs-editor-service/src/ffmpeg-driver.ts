@@ -39,8 +39,7 @@ function run(cmd: string, args: string[]): Promise<void> {
     });
     proc.on("error", reject);
     proc.on("close", (code) =>
-      code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}: ${err.slice(-400)}`)),
-    );
+      code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}: ${err.slice(-400)}`)));
   });
 }
 
@@ -49,7 +48,7 @@ function run(cmd: string, args: string[]): Promise<void> {
  * headless Chromium. It shares the composition's own crop math (resolveCrop /
  * cropDims / formatDims) so the output is pixel-parity with the Remotion Player
  * preview. Anything composited (burned captions, rich layers, story assembly)
- * is NOT expressible here and routes to Remotion — see SmartDriver.
+ * is NOT expressible here and routes to Remotion, see SmartDriver.
  */
 export class FfmpegDriver implements RenderDriver {
   /** True only for a plain Clip cut with no burned captions (parity-safe for ffmpeg). */

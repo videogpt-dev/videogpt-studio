@@ -66,7 +66,7 @@ function sceneFrames(seconds: number, gap: number, fps: number): number {
 type CaptionLine = { words: CaptionWord[]; start: number; end: number };
 
 /** Group words into lines that fit one line at the given width (dynamic, not a
- * fixed word count) — short words pack more per line, long words fewer. */
+ * fixed word count), short words pack more per line, long words fewer. */
 function buildLines(words: CaptionWord[], maxChars: number): CaptionLine[] {
   const lines: CaptionLine[] = [];
   let cur: CaptionWord[] = [];
@@ -223,21 +223,20 @@ function SceneClip({
   });
   // A gentle handheld pan (alternating direction) on top of the zoom, so a still
   // reads as filmed footage rather than a flat slideshow. Kept under the overscan
-  // (min scale 1.05 ⇒ ~2.5% margin per side) so no black edge is ever revealed.
+  // (min scale 1.05, about 2.5% margin per side) so no black edge is ever revealed.
   const panX = interpolate(
     frame,
     [0, durationInFrames],
     [zoomIn ? -1.8 : 1.8, zoomIn ? 1.8 : -1.8],
     {
       extrapolateRight: "clamp",
-    },
-  );
+    });
   const panY = interpolate(frame, [0, durationInFrames], [1.2, -1.2], {
     extrapolateRight: "clamp",
   });
   return (
     <AbsoluteFill style={{ backgroundColor: "black", overflow: "hidden" }}>
-      {/* Video Mode: play the generated clip (already in motion — no Ken Burns).
+      {/* Video Mode: play the generated clip (already in motion, no Ken Burns).
           Otherwise animate the still with a zoom + gentle pan. */}
       {scene.video ? (
         // Clips are bought by the second and capped, so one is usually shorter than the
@@ -316,8 +315,7 @@ export const storyCalcMeta: CalculateMetadataFunction<StoryVideoProps> = ({ prop
   const gap = props.sceneGap ?? DEFAULT_SCENE_GAP;
   const total = (props.scenes || []).reduce(
     (sum, s) => sum + sceneFrames(s.seconds, gap, props.fps),
-    0,
-  );
+    0);
   return {
     durationInFrames: Math.max(1, total),
     fps: props.fps,

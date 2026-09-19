@@ -9,17 +9,17 @@ import { Timeline } from "./components/Timeline.tsx";
  * The open editor shell. Holds one Clip EditDoc and edits it live: trim, reframe,
  * captions. Preview and export run the same composition, so it is WYSIWYG.
  * `initialDoc` lets a host (dashboard / self-host) mount it on a doc handed in
- * by the backend — the embeddable seam.
+ * by the backend, the embeddable seam.
  */
 export function EditorApp({ initialDoc }: { initialDoc?: Partial<ClipProps> }) {
-  const [doc, setDoc] = useState<ClipProps>({ ...DEFAULT_CLIP_PROPS, ...initialDoc });
+  const [doc, setDoc] = useState<ClipProps>({ ...DEFAULT_CLIP_PROPS...initialDoc });
   const [duration, setDuration] = useState(0);
   const [status, setStatus] = useState("");
   const [rendering, setRendering] = useState(false);
   const [resultUrl, setResultUrl] = useState("");
   const probe = useRef<HTMLVideoElement>(null);
 
-  const patch = (p: Partial<ClipProps>) => setDoc((d) => ({ ...d, ...p }));
+  const patch = (p: Partial<ClipProps>) => setDoc((d) => ({ ...d...p }));
 
   const onImport = async (file: File) => {
     setStatus(`Uploading ${file.name}...`);

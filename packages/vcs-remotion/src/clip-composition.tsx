@@ -113,7 +113,7 @@ export function CaptionOverlay({
   const t = inSec + frame / fps;
   // Prefer the most recently-started caption still on screen. Transcripts use a
   // sliding window, so several segments overlap; taking the first match would keep
-  // an older segment up after a newer one has begun — captions trailing the audio.
+  // an older segment up after a newer one has begun, captions trailing the audio.
   let active: Caption | undefined;
   for (const c of captions) {
     if (t >= c.start && t <= c.end && (!active || c.start > active.start)) active = c;
@@ -157,8 +157,8 @@ export function ClipComposition(props: ClipProps) {
 
   // Show only the crop sub-rect: the composition equals the crop, so the full
   // source is sized 1/w × 1/h of the frame and offset by -(x/w, y/h). The crop
-  // and composition share an aspect ratio ⇒ uniform native-scale pan (no
-  // distortion, no oversized layer → safe in the <Video> Player).
+  // and composition share an aspect ratio, so uniform native-scale pan (no
+  // distortion, no oversized layer, safe in the <Video> Player).
   const startFrom = Math.round(inSec * fps);
   const endAt = Math.round(outSec * fps);
   const style: CSSProperties = {

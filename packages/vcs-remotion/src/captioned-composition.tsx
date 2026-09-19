@@ -11,7 +11,7 @@ import { CaptionOverlay } from "./clip-composition.tsx";
 
 /**
  * inputProps for the <Captioned> composition: burns captions onto an
- * already-cut base clip. No crop/trim here — the base mp4 is the final framing,
+ * already-cut base clip. No crop/trim here, the base mp4 is the final framing,
  * so this just plays it whole and overlays the caption track. `inSec` is the
  * base clip's absolute start in the source, used to line captions (which carry
  * source-absolute times) up with the clip.

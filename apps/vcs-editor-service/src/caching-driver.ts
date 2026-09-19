@@ -23,13 +23,12 @@ function jobHash(job: RenderJob): string {
  * Content-addressed render cache decorator. The output of a deterministic
  * composition depends only on (compositionId, inputProps, codec), so an
  * identical job re-uses the cached mp4 instead of re-encoding. Wraps any driver
- * — the cache survives swapping the Remotion backend for another.
+ *, the cache survives swapping the Remotion backend for another.
  */
 export class CachingDriver implements RenderDriver {
   constructor(
     private readonly inner: RenderDriver,
-    private readonly cacheDir: string,
-  ) {}
+    private readonly cacheDir: string) {}
 
   async render(job: RenderJob, outputLocation: string): Promise<void> {
     const cachePath = path.join(this.cacheDir, `${jobHash(job)}.mp4`);
