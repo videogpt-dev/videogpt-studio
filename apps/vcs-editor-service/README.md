@@ -71,19 +71,21 @@ curl -s localhost:3000/health
 
 ## Deploy
 
-The service runs on its own box. From this directory:
+The service runs on its own box, behind that box's Traefik (external `traefik` network,
+`letsencrypt` resolver). From this directory:
 
 ```sh
-echo "EDITOR_BIND_IP=100.64.0.5" > .env   # the box's private or Tailscale IP
+cp .env.example .env   # set EDITOR_SERVICE_TOKEN (openssl rand -hex 32), EDITOR_HOST
 docker compose up -d --build
 ```
 
-It has no auth, so it binds only to a private address; never route it through a public proxy.
-When core and this box sit at different providers, join both to a Tailscale (or WireGuard)
-network and bind to the tailnet IP.
-Point core's `EDITOR_SERVICE_URL` at `http://<private IP>:3000`. Core passes signed
-vcs-assets URLs for inputs and outputs, so the box needs no shared volume; `.volume/output`
-holds only the render cache and temp files.
+Point `EDITOR_HOST` (default `renderer-svc.videogpt.dev`) at the box. Core sets
+`EDITOR_SERVICE_URL=https://<EDITOR_HOST>` and the same `EDITOR_SERVICE_TOKEN`. Every call
+must send `Authorization: Bearer <token>`; only `/health` and headless Chromium's own `/media`
+reads from inside the container skip it. Core passes signed vcs-assets URLs for inputs and
+outputs, so the box needs no shared volume; `.volume/output` holds only the render cache and
+temp files. `EDITOR_CPUS` and `EDITOR_MEMORY` cap the container (defaults 2 CPUs, 3 GB) so
+renders leave room for anything else on the box.
 
 ## Configuration
 
@@ -93,6 +95,7 @@ holds only the render cache and temp files.
 | `OUTPUT_DIR` | `/app/output` | media root (reads source, writes output) |
 | `RENDER_CACHE_DIR` | `$OUTPUT_DIR/.render-cache` | content addressed render cache |
 | `FFMPEG_PATH` | `ffmpeg` | ffmpeg binary for the fast lane |
+| `EDITOR_SERVICE_TOKEN` | unset | bearer every caller must send; unset disables the check (local dev) |
 
 ## Docker
 

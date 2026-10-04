@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -35,6 +35,24 @@ const driver = new CachingDriver(
 
 const app = express();
 app.use(express.json({ limit: "20mb" }));
+app.use(requireToken(process.env.EDITOR_SERVICE_TOKEN || ""));
+
+// With a token set, every caller must send it as a bearer, except the health probe and
+// headless Chromium reading /media from inside this container.
+function requireToken(token: string) {
+  const expected = Buffer.from(token);
+  return (req: Request, res: Response, next: () => void) => {
+    if (!token || req.path === "/health" || isLoopback(req.socket.remoteAddress)) return next();
+    const header = req.get("authorization") || "";
+    const given = Buffer.from(header.startsWith("Bearer ") ? header.slice(7).trim() : "");
+    if (given.length === expected.length && timingSafeEqual(given, expected)) return next();
+    res.status(401).json({ error: "unauthorized" });
+  };
+}
+
+function isLoopback(address: string | undefined): boolean {
+  return address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
+}
 
 // Serve the source video (and any output media) locally so headless Chromium
 // reads frames straight off the mounted volume, no cross-container streaming.

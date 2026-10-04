@@ -1,6 +1,3 @@
-# Standalone deploy of the render service. It has no auth, so it listens only on the box's
-# private or tailnet IP (EDITOR_BIND_IP, set in .env next to this file); core reaches it at
-# http://<that IP>:3000. Inputs and outputs travel as signed vcs-assets URLs.
 services:
   vcs-editor-service:
     build:
@@ -12,7 +9,34 @@ services:
     environment:
       - PORT=3000
       - OUTPUT_DIR=/app/output
-    ports:
-      - "${EDITOR_BIND_IP:?set EDITOR_BIND_IP to the box's private IP}:3000:3000"
+      - EDITOR_SERVICE_TOKEN=${EDITOR_SERVICE_TOKEN:?set EDITOR_SERVICE_TOKEN}
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vcs-editor-service.rule=Host(`${EDITOR_HOST:-renderer-svc.videogpt.dev}`)"
+      - "traefik.http.routers.vcs-editor-service.entrypoints=websecure"
+      - "traefik.http.routers.vcs-editor-service.tls=true"
+      - "traefik.http.routers.vcs-editor-service.tls.certresolver=letsencrypt"
+      - "traefik.http.services.vcs-editor-service.loadbalancer.server.port=3000"
     volumes:
       - ./.volume/output:/app/output
+    # Headless Chromium needs more than Docker's 64 MB /dev/shm or renders crash.
+    shm_size: 1gb
+    cpus: ${EDITOR_CPUS:-2}
+    mem_limit: ${EDITOR_MEMORY:-3g}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "3"
+
+networks:
+  traefik:
+    external: true
