@@ -69,6 +69,22 @@ curl -s localhost:3000/health
 # {"ok":true,"service":"vcs-editor-service"}
 ```
 
+## Deploy
+
+The service runs on its own box. From this directory:
+
+```sh
+echo "EDITOR_BIND_IP=100.64.0.5" > .env   # the box's private or Tailscale IP
+docker compose up -d --build
+```
+
+It has no auth, so it binds only to a private address; never route it through a public proxy.
+When core and this box sit at different providers, join both to a Tailscale (or WireGuard)
+network and bind to the tailnet IP.
+Point core's `EDITOR_SERVICE_URL` at `http://<private IP>:3000`. Core passes signed
+vcs-assets URLs for inputs and outputs, so the box needs no shared volume; `.volume/output`
+holds only the render cache and temp files.
+
 ## Configuration
 
 | Env | Default | Purpose |

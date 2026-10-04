@@ -5,3 +5,5 @@ web/dist/
 .render-cache/
 uploads/
 renders/
+.volume/
+.env

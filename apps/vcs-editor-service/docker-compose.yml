@@ -1,0 +1,18 @@
+# Standalone deploy of the render service. It has no auth, so it listens only on the box's
+# private or tailnet IP (EDITOR_BIND_IP, set in .env next to this file); core reaches it at
+# http://<that IP>:3000. Inputs and outputs travel as signed vcs-assets URLs.
+services:
+  vcs-editor-service:
+    build:
+      context: ../..
+      dockerfile: apps/vcs-editor-service/Dockerfile
+    image: vcs-editor-service:latest
+    container_name: vcs-editor-service
+    restart: unless-stopped
+    environment:
+      - PORT=3000
+      - OUTPUT_DIR=/app/output
+    ports:
+      - "${EDITOR_BIND_IP:?set EDITOR_BIND_IP to the box's private IP}:3000:3000"
+    volumes:
+      - ./.volume/output:/app/output
