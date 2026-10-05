@@ -2,7 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { bundle } from "@remotion/bundler";
 import { ensureBrowser, renderMedia, selectComposition } from "@remotion/renderer";
-import { parseEditDoc } from "@vcs/remotion";
+import { EditDocs } from "@vcs/remotion";
 import type { RenderDriver, RenderJob } from "./driver.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -28,7 +28,7 @@ export class RemotionDriver implements RenderDriver {
   }
 
   async render(job: RenderJob, outputLocation: string): Promise<void> {
-    const { compositionId, inputProps } = parseEditDoc(job.compositionId, job.inputProps);
+    const { compositionId, inputProps } = EditDocs.parse(job.compositionId, job.inputProps);
     const serveUrl = await this.getBundle();
     const composition = await selectComposition({ serveUrl, id: compositionId, inputProps });
     await renderMedia({

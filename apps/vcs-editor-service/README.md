@@ -33,7 +33,7 @@ routes do not change.
 `@vcs/remotion` holds the compositions (`Clip`, `Captioned`, `Story`) and a zod-validated
 edit document. The editor produces it, the `<Player>` previews it, and the renderer consumes
 it. Preview and render run the same composition code, so the preview matches the output.
-`parseEditDoc` validates every render before it starts.
+`EditDocs.parse` validates every render before it starts.
 
 ## Run
 

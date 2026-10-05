@@ -7,7 +7,7 @@ import {
   CAPTIONED_COMPOSITION_ID,
   type Caption,
   type CaptionWord,
-  parseEditDoc,
+  EditDocs,
   STORY_COMPOSITION_ID,
 } from "@vcs/remotion";
 import express, { type Request, type Response } from "express";
@@ -91,7 +91,8 @@ async function renderTo(
   job: RenderJob,
   localDir: string,
   name: string,
-  uploadUrl: string | undefined): Promise<void> {
+  uploadUrl: string | undefined,
+): Promise<void> {
   if (!uploadUrl) {
     fs.mkdirSync(localDir, { recursive: true });
     await driver.render(job, path.join(localDir, name));
@@ -161,7 +162,8 @@ app.post("/caption", async (req: Request, res: Response) => {
       { compositionId: CAPTIONED_COMPOSITION_ID, inputProps },
       outDir,
       "captioned.mp4",
-      b.uploadUrl);
+      b.uploadUrl,
+    );
     res.json({ ok: true, file: `${b.clip_id}/variants/captioned.mp4` });
   } catch (e) {
     console.error("Caption render failed:", e);
@@ -240,7 +242,8 @@ app.post("/render-story", async (req: Request, res: Response) => {
       { compositionId: STORY_COMPOSITION_ID, inputProps },
       path.join(OUTPUT_DIR, relDir),
       outName,
-      b.uploadUrl);
+      b.uploadUrl,
+    );
     res.json({ ok: true, file: `${relDir}/${outName}` });
   } catch (e) {
     console.error("Story render failed:", e);
@@ -272,7 +275,8 @@ app.put(
     fs.mkdirSync(path.join(OUTPUT_DIR, "uploads"), { recursive: true });
     fs.writeFileSync(path.join(OUTPUT_DIR, rel), body);
     res.json({ ok: true, url: `/media/${rel}` });
-  });
+  },
+);
 
 interface RenderBody {
   compositionId: string;
@@ -294,7 +298,7 @@ app.post("/v1/render", async (req: Request, res: Response) => {
     return res.status(400).json({ ok: false, error: "compositionId and inputProps are required" });
   }
   try {
-    parseEditDoc(b.compositionId, b.inputProps);
+    EditDocs.parse(b.compositionId, b.inputProps);
   } catch (e) {
     return res.status(400).json({ ok: false, error: String(e instanceof Error ? e.message : e) });
   }
@@ -305,7 +309,8 @@ app.post("/v1/render", async (req: Request, res: Response) => {
       { compositionId: b.compositionId, inputProps: b.inputProps },
       path.join(OUTPUT_DIR, relDir),
       outName,
-      b.uploadUrl);
+      b.uploadUrl,
+    );
     res.json({ ok: true, file: `${relDir}/${outName}` });
   } catch (e) {
     console.error("Render failed:", e);

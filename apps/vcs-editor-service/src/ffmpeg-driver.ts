@@ -5,11 +5,9 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import {
   CLIP_COMPOSITION_ID,
+  ClipGeometry,
   type ClipProps,
-  cropDims,
-  formatDims,
-  parseEditDoc,
-  resolveCrop,
+  EditDocs,
   STORY_COMPOSITION_ID,
   type StoryScene,
   type StoryVideoProps,
@@ -39,14 +37,15 @@ function run(cmd: string, args: string[]): Promise<void> {
     });
     proc.on("error", reject);
     proc.on("close", (code) =>
-      code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}: ${err.slice(-400)}`)));
+      code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}: ${err.slice(-400)}`)),
+    );
   });
 }
 
 /**
  * The fast render lane: a straight ffmpeg trim + crop/scale-to-format, no
- * headless Chromium. It shares the composition's own crop math (resolveCrop /
- * cropDims / formatDims) so the output is pixel-parity with the Remotion Player
+ * headless Chromium. It shares the composition's own crop math (ClipGeometry)
+ * so the output is pixel-parity with the Remotion Player
  * preview. Anything composited (burned captions, rich layers, story assembly)
  * is NOT expressible here and routes to Remotion, see SmartDriver.
  */
@@ -69,16 +68,16 @@ export class FfmpegDriver implements RenderDriver {
   }
 
   async render(job: RenderJob, outputLocation: string): Promise<void> {
-    const { compositionId, inputProps } = parseEditDoc(job.compositionId, job.inputProps);
+    const { compositionId, inputProps } = EditDocs.parse(job.compositionId, job.inputProps);
     if (compositionId === STORY_COMPOSITION_ID) {
       return this.renderStory(inputProps as StoryVideoProps, outputLocation);
     }
     const p = inputProps as ClipProps;
-    const crop = resolveCrop(p);
-    const { width: cw, height: ch } = cropDims(crop, p.srcWidth, p.srcHeight);
+    const crop = ClipGeometry.resolveCrop(p);
+    const { width: cw, height: ch } = ClipGeometry.cropDims(crop, p.srcWidth, p.srcHeight);
     const cx = evenFloor(crop.x * p.srcWidth);
     const cy = evenFloor(crop.y * p.srcHeight);
-    const { width: fw, height: fh } = formatDims(p.format);
+    const { width: fw, height: fh } = ClipGeometry.formatDims(p.format);
     const duration = Math.max(0.001, p.outSec - p.inSec);
     const vf = `crop=${cw}:${ch}:${cx}:${cy},scale=${fw}:${fh}`;
     await run(FFMPEG, [
@@ -146,7 +145,8 @@ export class FfmpegDriver implements RenderDriver {
       ]);
 
       if (props.music) {
-        const volume = typeof props.musicVolume === "number" ? props.musicVolume : DEFAULT_MUSIC_VOLUME;
+        const volume =
+          typeof props.musicVolume === "number" ? props.musicVolume : DEFAULT_MUSIC_VOLUME;
         await run(FFMPEG, [
           "-y",
           "-i",
@@ -247,7 +247,14 @@ export class FfmpegDriver implements RenderDriver {
       audioChain = `[${ai}:a]apad,atrim=0:${dur},asetpts=N/SR/TB[a]`;
     } else {
       const ai = 1;
-      inputs.push("-f", "lavfi", "-t", String(dur), "-i", "anullsrc=channel_layout=stereo:sample_rate=48000");
+      inputs.push(
+        "-f",
+        "lavfi",
+        "-t",
+        String(dur),
+        "-i",
+        "anullsrc=channel_layout=stereo:sample_rate=48000",
+      );
       audioChain = `[${ai}:a]atrim=0:${dur},asetpts=N/SR/TB[a]`;
     }
 

@@ -9,11 +9,12 @@ headless render, so what you preview is what you render.
 - **Compositions.** `Clip` (cut plus crop/scale plus optional captions), `Captioned`
   (burn a caption track onto a base clip), `Story` (assemble images or clips with voiceover,
   captions, and music). Registered in `RemotionRoot` for the renderer.
-- **Crop math.** `resolveCrop`, `cropDims`, `formatDims`, `centeredCrop`. The fast ffmpeg
-  render lane reuses these so its output matches the composition.
-- **Edit document.** zod schemas (`ClipInputSchema`, `CaptionedInputSchema`,
-  `StoryInputSchema`) plus `parseEditDoc(compositionId, inputProps)`, the one validated
-  contract the editor produces and the renderer consumes.
+- **Crop math.** `ClipGeometry` (`resolveCrop`, `cropDims`, `formatDims`, `cropForFormat`,
+  `durationInFrames`). The fast ffmpeg render lane reuses it so its output matches the
+  composition.
+- **Captions.** `CaptionTrack.activeAt` picks the caption on screen at a time.
+- **Edit document.** `EditDocs.parse(compositionId, inputProps)`, the one zod-validated contract
+  the editor produces and the renderer consumes.
 
 ## Use
 
@@ -21,14 +22,14 @@ Preview (any React app):
 
 ```tsx
 import { Player } from "@remotion/player";
-import { ClipComposition, calcMeta, CLIP_COMPOSITION_ID } from "@vcs/remotion";
+import { ClipComposition, ClipGeometry } from "@vcs/remotion";
 ```
 
 Validate a render request:
 
 ```ts
-import { parseEditDoc } from "@vcs/remotion";
-const doc = parseEditDoc(compositionId, inputProps); // throws on a bad shape
+import { EditDocs } from "@vcs/remotion";
+const doc = EditDocs.parse(compositionId, inputProps);
 ```
 
 ## License

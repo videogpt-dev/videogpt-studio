@@ -33,7 +33,7 @@ pnpm -C apps/vcs-editor-service web:dev     # editor UI on :5180
 
 - **Preview equals render.** A composition renders in the browser (`<Player>`) and headless
   (`renderMedia`) from the same code. Prove parity before you claim a fast-lane `supports()`.
-- **Validate at the boundary.** Every render goes through `parseEditDoc`. A bad document is a
+- **Validate at the boundary.** Every render goes through `EditDocs.parse`. A bad document is a
   400, not a mid-render crash.
 - **Keep `@remotion/*` isolated.** They import only in `remotion-driver.ts` and
   `remotion-entry.ts`, so a license-free backend stays a drop-in swap.

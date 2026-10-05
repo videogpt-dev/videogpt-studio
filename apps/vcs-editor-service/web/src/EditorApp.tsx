@@ -12,14 +12,14 @@ import { Timeline } from "./components/Timeline.tsx";
  * by the backend, the embeddable seam.
  */
 export function EditorApp({ initialDoc }: { initialDoc?: Partial<ClipProps> }) {
-  const [doc, setDoc] = useState<ClipProps>({ ...DEFAULT_CLIP_PROPS...initialDoc });
+  const [doc, setDoc] = useState<ClipProps>({ ...DEFAULT_CLIP_PROPS, ...initialDoc });
   const [duration, setDuration] = useState(0);
   const [status, setStatus] = useState("");
   const [rendering, setRendering] = useState(false);
   const [resultUrl, setResultUrl] = useState("");
   const probe = useRef<HTMLVideoElement>(null);
 
-  const patch = (p: Partial<ClipProps>) => setDoc((d) => ({ ...d...p }));
+  const patch = (p: Partial<ClipProps>) => setDoc((d) => ({ ...d, ...p }));
 
   const onImport = async (file: File) => {
     setStatus(`Uploading ${file.name}...`);
@@ -42,7 +42,8 @@ export function EditorApp({ initialDoc }: { initialDoc?: Partial<ClipProps> }) {
       patch({
         srcWidth: v.videoWidth || doc.srcWidth,
         srcHeight: v.videoHeight || doc.srcHeight,
-        outSec: doc.outSec > (v.duration || 0) || doc.outSec <= doc.inSec ? v.duration || 0 : doc.outSec,
+        outSec:
+          doc.outSec > (v.duration || 0) || doc.outSec <= doc.inSec ? v.duration || 0 : doc.outSec,
       });
     };
     v.addEventListener("loadedmetadata", onMeta);
@@ -80,7 +81,12 @@ export function EditorApp({ initialDoc }: { initialDoc?: Partial<ClipProps> }) {
               open result
             </a>
           )}
-          <button className="render-btn" type="button" onClick={onRender} disabled={!doc.src || rendering}>
+          <button
+            className="render-btn"
+            type="button"
+            onClick={onRender}
+            disabled={!doc.src || rendering}
+          >
             {rendering ? "Rendering..." : "Render"}
           </button>
         </div>
@@ -100,16 +106,17 @@ export function EditorApp({ initialDoc }: { initialDoc?: Partial<ClipProps> }) {
       </main>
 
       <footer className="dock">
-        <Timeline
-          inSec={doc.inSec}
-          outSec={doc.outSec}
-          duration={duration}
-          onChange={patch}
-        />
+        <Timeline inSec={doc.inSec} outSec={doc.outSec} duration={duration} onChange={patch} />
       </footer>
 
       {/* Hidden metadata probe. */}
-      <video ref={probe} src={doc.src || undefined} preload="metadata" style={{ display: "none" }} muted />
+      <video
+        ref={probe}
+        src={doc.src || undefined}
+        preload="metadata"
+        style={{ display: "none" }}
+        muted
+      />
     </div>
   );
 }

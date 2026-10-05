@@ -1,28 +1,23 @@
 import { Composition } from "remotion";
 import {
-  CLIP_COMPOSITION_ID,
-  ClipComposition,
-  DEFAULT_CLIP_PROPS,
-  calcMeta,
-} from "./clip-composition.tsx";
-import {
   CAPTIONED_COMPOSITION_ID,
   CaptionedComposition,
   DEFAULT_CAPTIONED_PROPS,
   captionedCalcMeta,
 } from "./captioned-composition.tsx";
 import {
+  CLIP_COMPOSITION_ID,
+  ClipComposition,
+  DEFAULT_CLIP_PROPS,
+  clipCalcMeta,
+} from "./clip-composition.tsx";
+import {
+  DEFAULT_STORY_PROPS,
   STORY_COMPOSITION_ID,
   StoryVideo,
-  DEFAULT_STORY_PROPS,
   storyCalcMeta,
 } from "./story-composition.tsx";
 
-/**
- * Remotion root registered for the renderer (selectComposition/renderMedia).
- * Dimensions and duration are computed per-render from inputProps via
- * calculateMetadata, so one composition outputs any format/length.
- */
 export function RemotionRoot() {
   return (
     <>
@@ -34,7 +29,7 @@ export function RemotionRoot() {
         width={1080}
         height={1920}
         defaultProps={DEFAULT_CLIP_PROPS}
-        calculateMetadata={calcMeta}
+        calculateMetadata={clipCalcMeta}
       />
       <Composition
         id={CAPTIONED_COMPOSITION_ID}
