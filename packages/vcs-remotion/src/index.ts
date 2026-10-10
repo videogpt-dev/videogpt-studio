@@ -8,6 +8,9 @@ export {
 } from "./clip-composition.tsx";
 export { CAPTIONED_COMPOSITION_ID } from "./captioned-composition.tsx";
 export {
+  CAPTION_POSITIONS,
+  CaptionPlacement,
+  type CaptionPosition,
   STORY_COMPOSITION_ID,
   type StoryScene,
   type StoryVideoProps,

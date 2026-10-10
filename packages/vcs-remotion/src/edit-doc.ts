@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CAPTIONED_COMPOSITION_ID } from "./captioned-composition.tsx";
 import { CLIP_COMPOSITION_ID } from "./clip-composition.tsx";
-import { STORY_COMPOSITION_ID } from "./story-composition.tsx";
+import { CAPTION_POSITIONS, STORY_COMPOSITION_ID } from "./story-composition.tsx";
 
 const caption = z.object({ start: z.number(), end: z.number(), text: z.string() });
 const captionWord = z.object({ word: z.string(), start: z.number(), end: z.number() });
@@ -52,6 +52,7 @@ const storyInput = z.object({
   karaoke: z.boolean().optional(),
   captionColor: z.string().optional(),
   captionScale: z.number().optional(),
+  captionPosition: z.enum(CAPTION_POSITIONS).optional(),
   sceneGap: z.number().optional(),
   music: z.string().optional(),
   musicVolume: z.number().optional(),

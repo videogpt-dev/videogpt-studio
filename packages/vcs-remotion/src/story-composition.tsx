@@ -32,10 +32,20 @@ export type StoryVideoProps = {
   karaoke?: boolean;
   captionColor?: string;
   captionScale?: number;
+  captionPosition?: CaptionPosition;
   sceneGap?: number;
   music?: string;
   musicVolume?: number;
 };
+
+export const CAPTION_POSITIONS = ["bottom", "middle", "top"] as const;
+export type CaptionPosition = (typeof CAPTION_POSITIONS)[number];
+
+export class CaptionPlacement {
+  static of(value: unknown): CaptionPosition | undefined {
+    return CAPTION_POSITIONS.find((position) => position === value);
+  }
+}
 
 export const STORY_COMPOSITION_ID = "StoryVideo";
 
@@ -53,6 +63,7 @@ export const DEFAULT_STORY_PROPS: StoryVideoProps = {
   karaoke: false,
   captionColor: DEFAULT_CAPTION_COLOR,
   captionScale: 1,
+  captionPosition: "bottom",
   sceneGap: DEFAULT_SCENE_GAP,
 };
 
@@ -108,24 +119,47 @@ class CaptionLines {
   }
 }
 
+/** Keeps captions clear of the chrome Shorts, Reels and TikTok draw over a vertical frame:
+ *  the caption, buttons and progress bar along the bottom, the action rail on the right, the
+ *  header on top. Landscape frames have little overlay and keep slim margins. */
+class CaptionSafeArea {
+  static insets(position: CaptionPosition, width: number, height: number) {
+    const vertical = height > width;
+    return {
+      left: width * 0.07,
+      right: width * (vertical ? 0.15 : 0.07),
+      top: position === "top" ? height * (vertical ? 0.16 : 0.08) : 0,
+      bottom: position === "bottom" ? height * (vertical ? 0.24 : 0.12) : 0,
+    };
+  }
+
+  static justify(position: CaptionPosition): "flex-start" | "center" | "flex-end" {
+    return position === "top" ? "flex-start" : position === "middle" ? "center" : "flex-end";
+  }
+}
+
 function SceneCaptions({
   words,
   fps,
   karaoke,
   color,
   scale,
+  position,
 }: {
   words: CaptionWord[];
   fps: number;
   karaoke: boolean;
   color: string;
   scale: number;
+  position: CaptionPosition;
 }) {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const seconds = frame / fps;
   const fontSize = Math.round(height * 0.052 * (scale || 1));
-  const maxChars = Math.max(8, Math.floor((width * 0.86) / (fontSize * 0.52)));
+  const inset = CaptionSafeArea.insets(position, width, height);
+  const lineWidth = width - inset.left - inset.right;
+  const maxChars = Math.max(8, Math.floor(lineWidth / (fontSize * 0.52)));
   const lines = useMemo(() => CaptionLines.build(words, maxChars), [words, maxChars]);
   const active = CaptionLines.activeAt(lines, seconds);
   if (!active) return null;
@@ -133,9 +167,9 @@ function SceneCaptions({
   return (
     <AbsoluteFill
       style={{
-        justifyContent: "flex-end",
+        justifyContent: CaptionSafeArea.justify(position),
         alignItems: "center",
-        padding: `0 ${width * 0.07}px ${height * 0.12}px`,
+        padding: `${inset.top}px ${inset.right}px ${inset.bottom}px ${inset.left}px`,
       }}
     >
       <div
@@ -195,6 +229,7 @@ function SceneClip({
   karaoke,
   captionColor,
   captionScale,
+  captionPosition,
 }: {
   scene: StoryScene;
   index: number;
@@ -203,6 +238,7 @@ function SceneClip({
   karaoke: boolean;
   captionColor: string;
   captionScale: number;
+  captionPosition: CaptionPosition;
 }) {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
@@ -242,6 +278,7 @@ function SceneClip({
           karaoke={karaoke}
           color={captionColor}
           scale={captionScale}
+          position={captionPosition}
         />
       ) : null}
     </AbsoluteFill>
@@ -255,6 +292,7 @@ export function StoryVideo({
   karaoke = false,
   captionColor = DEFAULT_CAPTION_COLOR,
   captionScale = 1,
+  captionPosition = "bottom",
   sceneGap = DEFAULT_SCENE_GAP,
   music,
   musicVolume = 0.18,
@@ -276,6 +314,7 @@ export function StoryVideo({
               karaoke={karaoke}
               captionColor={captionColor}
               captionScale={captionScale}
+              captionPosition={captionPosition}
             />
           </Sequence>
         );

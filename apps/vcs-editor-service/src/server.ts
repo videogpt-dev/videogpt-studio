@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   CAPTIONED_COMPOSITION_ID,
+  CaptionPlacement,
   type Caption,
   type CaptionWord,
   EditDocs,
@@ -190,6 +191,7 @@ interface StoryBody {
   karaoke?: boolean;
   captionColor?: string;
   captionScale?: number;
+  captionPosition?: string;
   sceneGap?: number;
   music?: string; // path relative to OUTPUT_DIR
   out?: string; // output basename (e.g. "video-2.mp4"); backend versions renders
@@ -220,6 +222,7 @@ app.post("/render-story", async (req: Request, res: Response) => {
     karaoke: b.karaoke === true,
     captionColor: b.captionColor || undefined,
     captionScale: b.captionScale || undefined,
+    captionPosition: CaptionPlacement.of(b.captionPosition),
     sceneGap: typeof b.sceneGap === "number" ? b.sceneGap : undefined,
     music: b.music ? mediaUrl(b.music) : undefined,
     scenes: b.scenes.map((s) => ({
