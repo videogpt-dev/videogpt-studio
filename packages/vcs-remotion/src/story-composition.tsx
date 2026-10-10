@@ -129,7 +129,7 @@ class CaptionSafeArea {
       left: width * 0.07,
       right: width * (vertical ? 0.15 : 0.07),
       top: position === "top" ? height * (vertical ? 0.16 : 0.08) : 0,
-      bottom: position === "bottom" ? height * (vertical ? 0.24 : 0.12) : 0,
+      bottom: position === "bottom" ? height * (vertical ? 0.1 : 0.08) : 0,
     };
   }
 
