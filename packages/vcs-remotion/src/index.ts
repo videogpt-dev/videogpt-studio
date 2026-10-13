@@ -15,5 +15,12 @@ export {
   type StoryScene,
   type StoryVideoProps,
 } from "./story-composition.tsx";
+export {
+  CaptionLayout,
+  type CaptionLine,
+  CaptionLines,
+  CaptionSafeArea,
+  DEFAULT_CAPTION_COLOR,
+} from "./story-captions.ts";
 export { RemotionRoot } from "./root.tsx";
 export { EditDocs, type EditDoc } from "./edit-doc.ts";

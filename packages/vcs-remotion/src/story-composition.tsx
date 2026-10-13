@@ -12,6 +12,19 @@ import {
   useVideoConfig,
 } from "remotion";
 import type { CaptionWord } from "./captions.ts";
+import {
+  type CaptionPosition,
+  CaptionLayout,
+  CaptionLines,
+  CaptionSafeArea,
+  DEFAULT_CAPTION_COLOR,
+} from "./story-captions.ts";
+
+export {
+  CAPTION_POSITIONS,
+  CaptionPlacement,
+  type CaptionPosition,
+} from "./story-captions.ts";
 
 export type StoryScene = {
   image: string;
@@ -38,18 +51,8 @@ export type StoryVideoProps = {
   musicVolume?: number;
 };
 
-export const CAPTION_POSITIONS = ["bottom", "middle", "top"] as const;
-export type CaptionPosition = (typeof CAPTION_POSITIONS)[number];
-
-export class CaptionPlacement {
-  static of(value: unknown): CaptionPosition | undefined {
-    return CAPTION_POSITIONS.find((position) => position === value);
-  }
-}
-
 export const STORY_COMPOSITION_ID = "StoryVideo";
 
-const DEFAULT_CAPTION_COLOR = "#FFD84D";
 const DEFAULT_SCENE_GAP = 0.5;
 const VIGNETTE = "radial-gradient(125% 120% at 50% 45%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.4) 100%)";
 const COVER = { width: "100%", height: "100%", objectFit: "cover" as const };
@@ -59,15 +62,13 @@ export const DEFAULT_STORY_PROPS: StoryVideoProps = {
   fps: 30,
   width: 1080,
   height: 1920,
-  showCaptions: true,
+  showCaptions: false,
   karaoke: false,
   captionColor: DEFAULT_CAPTION_COLOR,
   captionScale: 1,
   captionPosition: "bottom",
   sceneGap: DEFAULT_SCENE_GAP,
 };
-
-type CaptionLine = { words: CaptionWord[]; start: number; end: number };
 
 class StoryTimeline {
   static sceneFrames(seconds: number, gap: number, fps: number): number {
@@ -80,61 +81,6 @@ class StoryTimeline {
       (sum, scene) => sum + StoryTimeline.sceneFrames(scene.seconds, gap, props.fps),
       0,
     );
-  }
-}
-
-class CaptionLines {
-  static build(words: CaptionWord[], maxChars: number): CaptionLine[] {
-    const lines: CaptionLine[] = [];
-    let current: CaptionWord[] = [];
-    let length = 0;
-    for (const entry of words) {
-      const word = (entry.word || "").trim();
-      if (!word) continue;
-      const candidate = current.length ? length + 1 + word.length : word.length;
-      if (current.length && candidate > maxChars) {
-        lines.push(CaptionLines.line(current));
-        current = [{ ...entry, word }];
-        length = word.length;
-      } else {
-        current.push({ ...entry, word });
-        length = candidate;
-      }
-    }
-    if (current.length) lines.push(CaptionLines.line(current));
-    return lines;
-  }
-
-  static activeAt(lines: CaptionLine[], seconds: number): CaptionLine | undefined {
-    let active: CaptionLine | undefined;
-    for (const line of lines) {
-      if (line.start > seconds) break;
-      active = line;
-    }
-    return active;
-  }
-
-  private static line(words: CaptionWord[]): CaptionLine {
-    return { words, start: words[0].start, end: words[words.length - 1].end };
-  }
-}
-
-/** Keeps captions clear of the chrome Shorts, Reels and TikTok draw over a vertical frame:
- *  the caption, buttons and progress bar along the bottom, the action rail on the right, the
- *  header on top. Landscape frames have little overlay and keep slim margins. */
-class CaptionSafeArea {
-  static insets(position: CaptionPosition, width: number, height: number) {
-    const vertical = height > width;
-    return {
-      left: width * 0.07,
-      right: width * (vertical ? 0.15 : 0.07),
-      top: position === "top" ? height * (vertical ? 0.16 : 0.08) : 0,
-      bottom: position === "bottom" ? height * (vertical ? 0.1 : 0.08) : 0,
-    };
-  }
-
-  static justify(position: CaptionPosition): "flex-start" | "center" | "flex-end" {
-    return position === "top" ? "flex-start" : position === "middle" ? "center" : "flex-end";
   }
 }
 
@@ -156,10 +102,7 @@ function SceneCaptions({
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const seconds = frame / fps;
-  const fontSize = Math.round(height * 0.052 * (scale || 1));
-  const inset = CaptionSafeArea.insets(position, width, height);
-  const lineWidth = width - inset.left - inset.right;
-  const maxChars = Math.max(8, Math.floor(lineWidth / (fontSize * 0.52)));
+  const { fontSize, inset, maxChars, stroke } = CaptionLayout.of(width, height, scale, position);
   const lines = useMemo(() => CaptionLines.build(words, maxChars), [words, maxChars]);
   const active = CaptionLines.activeAt(lines, seconds);
   if (!active) return null;
@@ -180,7 +123,7 @@ function SceneCaptions({
           lineHeight: 1.15,
           textAlign: "center",
           textShadow: "0 3px 10px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.95)",
-          WebkitTextStroke: `${Math.max(1, Math.round(fontSize * 0.03))}px rgba(0,0,0,0.85)`,
+          WebkitTextStroke: `${stroke}px rgba(0,0,0,0.85)`,
         }}
       >
         {active.words.map((word, index) => {

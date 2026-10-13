@@ -12,6 +12,7 @@ import {
   type StoryScene,
   type StoryVideoProps,
 } from "@vcs/remotion";
+import { AssCaptions } from "./ass-captions.ts";
 import type { RenderDriver, RenderJob } from "./driver.ts";
 
 const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
@@ -43,11 +44,10 @@ function run(cmd: string, args: string[]): Promise<void> {
 }
 
 /**
- * The fast render lane: a straight ffmpeg trim + crop/scale-to-format, no
- * headless Chromium. It shares the composition's own crop math (ClipGeometry)
- * so the output is pixel-parity with the Remotion Player
- * preview. Anything composited (burned captions, rich layers, story assembly)
- * is NOT expressible here and routes to Remotion, see SmartDriver.
+ * The fast render lane, no headless Chromium: a straight ffmpeg trim + crop/scale for a
+ * clip (the composition's own crop math, ClipGeometry, so it is pixel-parity with the
+ * Remotion Player preview), and the whole story assembly including its captions. A clip
+ * with burned captions or rich layers routes to Remotion, see SmartDriver.
  */
 export class FfmpegDriver implements RenderDriver {
   /** True only for a plain Clip cut with no burned captions (parity-safe for ffmpeg). */
@@ -57,14 +57,11 @@ export class FfmpegDriver implements RenderDriver {
     return !(p.showCaptions && (p.captions?.length ?? 0) > 0);
   }
 
-  /** A story with no burned captions: ffmpeg reproduces the Ken Burns + grain +
-   *  vignette grade closely (not byte-identical). Any caption text routes to Remotion,
-   *  whose per-word timing/karaoke ffmpeg cannot match pixel-for-pixel. */
+  /** Every story: ffmpeg reproduces the Ken Burns + grain + vignette grade closely (not
+   *  byte-identical) and burns captions from an ASS file built with the composition's own
+   *  layout, so no story pays for Chromium frame painting. */
   static supportsStory(job: RenderJob): boolean {
-    if (job.compositionId !== STORY_COMPOSITION_ID) return false;
-    const p = job.inputProps as Partial<StoryVideoProps>;
-    if (p.showCaptions === false) return true;
-    return !(p.scenes || []).some((s) => (s.words?.length ?? 0) > 0);
+    return job.compositionId === STORY_COMPOSITION_ID;
   }
 
   async render(job: RenderJob, outputLocation: string): Promise<void> {
@@ -122,7 +119,8 @@ export class FfmpegDriver implements RenderDriver {
       const segments: string[] = [];
       for (let i = 0; i < props.scenes.length; i++) {
         const seg = path.join(work, `seg_${i}.mp4`);
-        await this.renderScene(props.scenes[i], i, width, height, fps, gap, seg);
+        const captions = this.captionFile(props, props.scenes[i], width, height, gap, work, i);
+        await this.renderScene(props.scenes[i], i, width, height, fps, gap, seg, captions);
         segments.push(seg);
       }
 
@@ -180,8 +178,34 @@ export class FfmpegDriver implements RenderDriver {
     }
   }
 
+  /** The scene's burned captions as an ASS file in the work dir, or null when it has none. */
+  private captionFile(
+    props: StoryVideoProps,
+    scene: StoryScene,
+    width: number,
+    height: number,
+    gap: number,
+    work: string,
+    index: number,
+  ): string | null {
+    if (!props.showCaptions || !scene.words?.length) return null;
+    const ass = AssCaptions.build(scene.words, sceneDurationSec(scene, gap), {
+      width,
+      height,
+      color: props.captionColor,
+      scale: props.captionScale,
+      position: props.captionPosition,
+      karaoke: props.karaoke,
+    });
+    if (!ass) return null;
+    const file = path.join(work, `captions_${index}.ass`);
+    fs.writeFileSync(file, ass);
+    return file;
+  }
+
   /** One scene as a standalone segment: video (Ken Burns still or clip) + graded overlays
-   *  + an audio track padded to the exact scene length so the concat lines up. */
+   *  + burned captions + an audio track padded to the exact scene length so the concat
+   *  lines up. */
   private async renderScene(
     scene: StoryScene,
     index: number,
@@ -190,10 +214,13 @@ export class FfmpegDriver implements RenderDriver {
     fps: number,
     gap: number,
     segPath: string,
+    captions: string | null,
   ): Promise<void> {
     const dur = sceneDurationSec(scene, gap);
     const frames = Math.max(1, Math.round(dur * fps));
-    const grade = `vignette=PI/5,noise=alls=8:allf=t,format=yuv420p`;
+    // Captions go on after the grain and vignette so the text stays crisp, as in the preview.
+    const subtitles = captions ? `,subtitles=filename='${captions}'` : "";
+    const grade = `vignette=PI/5,noise=alls=8:allf=t,format=yuv420p${subtitles}`;
 
     const inputs: string[] = [];
     let videoChain: string;
