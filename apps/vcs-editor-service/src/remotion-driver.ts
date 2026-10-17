@@ -37,6 +37,7 @@ export class RemotionDriver implements RenderDriver {
       codec: job.codec ?? "h264",
       inputProps,
       outputLocation,
+      metadata: job.metadata ?? null,
     });
   }
 }

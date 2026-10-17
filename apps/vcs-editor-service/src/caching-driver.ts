@@ -15,7 +15,12 @@ function stableStringify(value: unknown): string {
 }
 
 function jobHash(job: RenderJob): string {
-  const key = stableStringify({ c: job.compositionId, i: job.inputProps, k: job.codec ?? "h264" });
+  const key = stableStringify({
+    c: job.compositionId,
+    i: job.inputProps,
+    k: job.codec ?? "h264",
+    m: job.metadata,
+  });
   return createHash("sha256").update(key).digest("hex");
 }
 

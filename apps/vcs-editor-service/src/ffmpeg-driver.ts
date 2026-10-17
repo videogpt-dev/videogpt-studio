@@ -13,7 +13,7 @@ import {
   type StoryVideoProps,
 } from "@vcs/remotion";
 import { AssCaptions } from "./ass-captions.ts";
-import type { RenderDriver, RenderJob } from "./driver.ts";
+import { type RenderDriver, type RenderJob, RenderTags } from "./driver.ts";
 
 const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
 const evenFloor = (n: number) => Math.max(0, Math.floor(n / 2) * 2);
@@ -66,8 +66,9 @@ export class FfmpegDriver implements RenderDriver {
 
   async render(job: RenderJob, outputLocation: string): Promise<void> {
     const { compositionId, inputProps } = EditDocs.parse(job.compositionId, job.inputProps);
+    const tags = RenderTags.args(job.metadata);
     if (compositionId === STORY_COMPOSITION_ID) {
-      return this.renderStory(inputProps as StoryVideoProps, outputLocation);
+      return this.renderStory(inputProps as StoryVideoProps, outputLocation, tags);
     }
     const p = inputProps as ClipProps;
     const crop = ClipGeometry.resolveCrop(p);
@@ -99,6 +100,7 @@ export class FfmpegDriver implements RenderDriver {
       "aac",
       "-movflags",
       "+faststart",
+      ...tags,
       outputLocation,
     ]);
   }
@@ -109,7 +111,11 @@ export class FfmpegDriver implements RenderDriver {
    * padded to the scene+gap length), the segments concat, then a looped music bed mixes
    * over the whole. Minutes of Remotion frame-painting collapse to a few ffmpeg passes.
    */
-  private async renderStory(props: StoryVideoProps, outputLocation: string): Promise<void> {
+  private async renderStory(
+    props: StoryVideoProps,
+    outputLocation: string,
+    tags: string[],
+  ): Promise<void> {
     const fps = props.fps;
     const width = evenFloor(props.width);
     const height = evenFloor(props.height);
@@ -139,6 +145,7 @@ export class FfmpegDriver implements RenderDriver {
         "copy",
         "-movflags",
         "+faststart",
+        ...tags,
         joined,
       ]);
 
@@ -170,6 +177,7 @@ export class FfmpegDriver implements RenderDriver {
           "-shortest",
           "-movflags",
           "+faststart",
+          ...tags,
           outputLocation,
         ]);
       }

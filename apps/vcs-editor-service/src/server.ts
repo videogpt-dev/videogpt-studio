@@ -13,7 +13,7 @@ import {
 } from "@vcs/remotion";
 import express, { type Request, type Response } from "express";
 import { CachingDriver } from "./caching-driver.ts";
-import type { RenderJob } from "./driver.ts";
+import { type RenderJob, RenderTags } from "./driver.ts";
 import { FfmpegDriver } from "./ffmpeg-driver.ts";
 import { RemotionDriver } from "./remotion-driver.ts";
 import { SmartDriver } from "./smart-driver.ts";
@@ -197,6 +197,7 @@ interface StoryBody {
   out?: string; // output basename (e.g. "video-2.mp4"); backend versions renders
   out_dir?: string; // dir relative to OUTPUT_DIR (e.g. videogen/series/<sid>/episodes/3)
   uploadUrl?: string; // signed gateway PUT url; when set the service uploads its output itself
+  metadata?: Record<string, string>; // tags written into the file (e.g. comment)
   scenes: StoryScene[];
 }
 
@@ -242,7 +243,7 @@ app.post("/render-story", async (req: Request, res: Response) => {
     // episode); accept it only when it stays inside OUTPUT_DIR.
     const relDir = safeRelDir(b.out_dir) ? b.out_dir! : `videogen/${b.pid}`;
     await renderTo(
-      { compositionId: STORY_COMPOSITION_ID, inputProps },
+      { compositionId: STORY_COMPOSITION_ID, inputProps, metadata: RenderTags.of(b.metadata) },
       path.join(OUTPUT_DIR, relDir),
       outName,
       b.uploadUrl,
@@ -287,6 +288,7 @@ interface RenderBody {
   out?: string; // output basename (default render.mp4)
   out_dir?: string; // dir relative to OUTPUT_DIR (default "renders")
   uploadUrl?: string; // signed gateway PUT url; when set the service uploads its own output
+  metadata?: Record<string, string>; // tags written into the file (e.g. comment)
 }
 
 // ---------------------------------------------------------------------------
@@ -309,7 +311,11 @@ app.post("/v1/render", async (req: Request, res: Response) => {
     const outName = b.out && safeSegment(b.out) && b.out.endsWith(".mp4") ? b.out : "render.mp4";
     const relDir = safeRelDir(b.out_dir) ? b.out_dir! : "renders";
     await renderTo(
-      { compositionId: b.compositionId, inputProps: b.inputProps },
+      {
+        compositionId: b.compositionId,
+        inputProps: b.inputProps,
+        metadata: RenderTags.of(b.metadata),
+      },
       path.join(OUTPUT_DIR, relDir),
       outName,
       b.uploadUrl,
